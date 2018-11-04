@@ -3,7 +3,7 @@ variable "region" {
   type        = "string"
 }
 
-variable "vpc_cidr" {
+variable "cidr" {
   description = "CIDR to use for the VPC."
   type        = "string"
 }
