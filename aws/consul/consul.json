@@ -1,0 +1,66 @@
+{
+    "min_packer_version": "0.12.0",
+    "variables": {
+        "aws_region": "us-east-1",
+        "consul_version": "1.3.0",
+        "download_url": "https://releases.hashicorp.com/consul/1.3.0/consul_1.3.0_linux_amd64.zip", 
+        "module_version": "0.4.1"
+    },
+    "builders": [
+        {
+            "name": "amazon-linux-ami",
+            "ami_name": "consul-amazon-linux-{{isotime | clean_ami_name}}",
+            "ami_description": "An Amazon Linux AMI that has Consul installed.",
+            "instance_type": "t2.nano",
+            "region": "{{user `aws_region`}}",
+            "type": "amazon-ebs",
+            "tags": {
+                "Base_AMI_Name": "{{ .SourceAMIName }}",
+                "service": "consul"
+            },
+            "vpc_filter": {
+                "filters": {
+                    "tag:Name": "build",
+                    "isDefault": "false"
+                }
+            },
+            "subnet_filter": {
+                "filters": {
+                    "tag:Name": "build"
+                },
+                "most_free": true,
+                "random": false
+            },
+            "source_ami_filter": {
+                "filters": {
+                    "virtualization-type": "hvm",
+                    "architecture": "x86_64",
+                    "name": "*amzn-ami-hvm-*",
+                    "block-device-mapping.volume-type": "gp2",
+                    "root-device-type": "ebs"
+                },
+                "owners": [
+                    "amazon"
+                ],
+                "most_recent": true
+            },
+            "ssh_username": "ec2-user"
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "inline": [
+                "wget https://github.com/hashicorp/terraform-aws-consul/archive/v{{ user `module_version`}}.tar.gz",
+                "gunzip v{{ user `module_version`}}.tar.gz",
+                "mkdir -p /tmp/terraform-aws-consul",
+                "tar -xvf v{{ user `module_version`}}.tar",
+                "mv terraform-aws-consul-{{ user `module_version`}}/* /tmp/terraform-aws-consul/",
+                "/tmp/terraform-aws-consul/modules/install-consul/install-consul --version {{user `consul_version`}}",
+                "/tmp/terraform-aws-consul/modules/install-dnsmasq/install-dnsmasq",
+                "rm -rf /tmp/terraform-aws-consul/"
+            ],
+            "pause_before": "30s"
+        }
+    ]
+}
